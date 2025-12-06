@@ -1,79 +1,142 @@
+// components/TimerDisplay.tsx
+
 'use client'
 
-import React from 'react';
-import { useTimer } from './hooks/useTimer';
-import  { formatTime } from '../components/utils/formatTimes'; 
+import React, { useState } from 'react';
+import { usePomodoro, CycleType } from './hooks/usePomodoro';
+import  { formatTime } from './utils/formatTimes'; 
+import SettingsModal from './SettingsModal';
+
+const getTitle = (cycle: CycleType) => {
+    switch (cycle) {
+        case 'pomodoro': return 'Tempo de Foco!';
+        case 'shortBreak': return 'Pausa Curta';
+        case 'longBreak': return 'Pausa Longa';
+        default: return 'Pomodoro Timer';
+    }
+}
 
 const TimerDisplay: React.FC = () => {
-  // Use o hook para obter o estado e os controles
-  const { timeInSeconds, status, start, pause, reset } = useTimer();
 
-  const formattedTime = formatTime(timeInSeconds);
+    const {
+        timeInSeconds,
+        status,
+        start,
+        pause,
+        currentCycle,
+        pomodorosCompleted,
+        skipCycle,
+    } = usePomodoro();
 
-  // Texto do botão principal (dinâmico)
-  const buttonText = status === 'running' ? 'Pausar' : 
-                     status === 'paused' ? 'Continuar' : 'Iniciar';
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Handler do botão principal
-  const handleMainAction = () => {
-    if (status === 'running') {
-      pause();
-    } else {
-      start();
-    }
-  };
+    const formattedTime = formatTime(timeInSeconds);
 
-  return (
-    <div style={{ textAlign: 'center', padding: '20px' }}>
-      {/* Exibição do Tempo */}
-      <h1 
-        style={{ 
-          fontSize: '8rem', 
-          fontWeight: 'bold', 
-          color: status === 'running' ? '#4CAF50' : '#333'
-        }}
-      >
-        {formattedTime}
-      </h1>
+    const cycleTitle = getTitle(currentCycle);
+    
+    const handleMainAction = () => {
+        if (status === 'running') {
+            pause();
+        } else {
+            start();
+        }
+    };
 
-      {/* Controles */}
-      <div style={{ marginTop: '20px' }}>
-        <button 
-          onClick={handleMainAction}
-          style={{ 
-            padding: '10px 20px', 
-            fontSize: '1.5rem', 
-            marginRight: '10px',
-            backgroundColor: status === 'running' ? '#f44336' : '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}
-        >
-          {buttonText}
-        </button>
+    return (
+        <div style={{ textAlign: 'center', padding: '20px', color: '#FFFFFF' }}> 
+            
+            <h2>{cycleTitle}</h2> 
+            <p style={{ color: '#90CAF9' }}>Pomodoros Concluídos: **{pomodorosCompleted}**</p> 
 
-        <button 
-          onClick={() => reset(25 * 60)} 
-          disabled={status === 'running'} 
-          style={{ 
-            padding: '10px 20px', 
-            fontSize: '1.5rem', 
-            backgroundColor: '#FF9800',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            opacity: status === 'running' ? 0.6 : 1
-          }}
-        >
-          Resetar
-        </button>
-      </div>
-      <p style={{ marginTop: '10px' }}>Status: **{status.toUpperCase()}**</p>
-    </div>
-  );
+            {/* CONTAINER DO CÍRCULO DO TEMPO */}
+            <div style={{
+                margin: '30px auto',
+                width: '300px', // Voltou para 300px fixo, como você tinha
+                height: '300px', // Voltou para 300px fixo, como você tinha
+                borderRadius: '50%',
+                border: `10px solid ${status === 'running' ? '#4CAF50' : '#424242'}`, 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 15px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(0, 0, 0, 0.3)'
+            }}>
+                {/* Exibição do Tempo */}
+                <h1 
+                    style={{ 
+                        fontSize: '6rem', // Voltou para 6rem fixo, como você tinha
+                        fontWeight: 'bold', 
+                        color: status === 'running' ? '#81C784' : '#E0E0E0', 
+                        lineHeight: '1'
+                    }}
+                >
+                    {formattedTime}
+                </h1>
+            </div>
+
+            {/* Controles */}
+            <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'center', gap: '15px' }}>
+                {/* Botão Principal */}
+                <button 
+                    onClick={handleMainAction}
+                    style={{ 
+                        padding: '12px 25px', 
+                        fontSize: '1.2rem', 
+                        backgroundColor: status === 'running' ? '#F44336' : '#4CAF50', 
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                    }}
+                >
+                    {status === 'running' ? 'Pausar' : 
+                     status === 'paused' ? 'Continuar' : 'Iniciar'}
+                </button>
+
+                {/* Botão Pular Ciclo */}
+                <button 
+                    onClick={() => skipCycle()} 
+                    disabled={status === 'running'} 
+                    style={{ 
+                        padding: '12px 25px', 
+                        fontSize: '1.2rem', 
+                        backgroundColor: '#FF9800', 
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        opacity: status === 'running' ? 0.6 : 1
+                    }}
+                >
+                    Pular Ciclo
+                </button>
+            </div>
+            
+            {/* Configurações */}
+            <div style={{ marginTop: '30px', textAlign: 'center' }}>
+                <button
+                    onClick={() => setIsSettingsOpen(true)}
+                    style={{ 
+                        padding: '8px 15px', 
+                        backgroundColor: '#424242', 
+                        color: '#BDBDBD', 
+                        border: 'none', 
+                        borderRadius: '8px', 
+                        cursor: 'pointer',
+                        fontSize: '1rem'
+                    }}
+                >
+                    ⚙️ Configurações
+                </button>
+            </div>
+            
+            <p style={{ marginTop: '15px', color: '#BDBDBD' }}>Status: **{status.toUpperCase()}**</p>
+            
+            {isSettingsOpen && (
+                <SettingsModal onClose={() => setIsSettingsOpen(false)} />
+            )}
+        </div>
+    );
 };
 
 export default TimerDisplay;
