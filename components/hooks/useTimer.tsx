@@ -7,21 +7,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 export type TimerStatus = 'stopped' | 'running' | 'paused';
 
 export const useTimer = (initialSeconds: number) => {
-    // Inicializa o tempo com o valor inicial
+    // Inicializa o tempo apenas uma vez
     const [timeInSeconds, setTimeInSeconds] = useState(initialSeconds);
     const [status, setStatus] = useState<TimerStatus>('stopped');
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Usado para garantir que o tempo só seja ajustado automaticamente na montagem
-    const isMounted = useRef(false);
-
-    // Efeito para garantir que o tempo inicial seja carregado corretamente
-    useEffect(() => {
-        if (!isMounted.current) {
-            setTimeInSeconds(initialSeconds);
-            isMounted.current = true;
-        }
-    }, [initialSeconds]); 
 
     const stopInterval = () => {
         if (intervalRef.current) {
@@ -30,9 +19,6 @@ export const useTimer = (initialSeconds: number) => {
         }
     };
 
-    // CORREÇÃO ESSENCIAL: Usa a forma funcional para garantir que o estado
-    // de 'status' seja atualizado de forma síncrona, mesmo que 'start'
-    // tenha sido criado há muito tempo (evita stale state).
     const start = useCallback(() => {
         setStatus(prevStatus => {
             if (prevStatus !== 'running') {
@@ -48,11 +34,11 @@ export const useTimer = (initialSeconds: number) => {
         }
     }, [status]);
 
-    const reset = useCallback((newTime: number = initialSeconds) => {
+    const reset = useCallback((newTime: number) => {
         stopInterval();
         setTimeInSeconds(newTime);
         setStatus('stopped');
-    }, [initialSeconds]); 
+    }, []); 
 
     // Efeito principal para iniciar/parar o setInterval
     useEffect(() => {
@@ -70,7 +56,9 @@ export const useTimer = (initialSeconds: number) => {
                     return newTime;
                 });
             }, 1000);
-        } else if (intervalRef.current) {
+        } 
+        // CORREÇÃO CRÍTICA: Use 'else' simples para limpar o intervalo se não estiver 'running'
+        else if (intervalRef.current) {
             stopInterval();
         }
 
@@ -79,6 +67,10 @@ export const useTimer = (initialSeconds: number) => {
         };
     }, [status]); 
 
+    // Efeito para sincronizar o tempo inicial APENAS na montagem
+    useEffect(() => {
+        setTimeInSeconds(initialSeconds);
+    }, [initialSeconds]); 
 
     return {
         timeInSeconds,
