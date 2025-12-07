@@ -41,7 +41,9 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setHistory(prev => {
             const newHistory = [...prev, session];
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
-            return newHistory; // CORREÇÃO: Deve retornar o novo array
+            
+            // CORREÇÃO CRÍTICA: Retorna o novo estado (o novo array newHistory)
+            return newHistory; 
         });
     };
 
